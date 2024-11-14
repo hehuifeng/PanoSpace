@@ -1,0 +1,19 @@
+name: PanoSpace
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - numpy=1.26.2
+  - pandas=2.1.4
+  - anndata=0.10.3
+  - scipy=1.11.4
+  - scikit-learn=1.2.2
+  - pip=24.2
+  - opencv=4.8
+  - pillow=9.4.0
+  - scanpy=1.9.6
+  - tqdm=4.66.1
+  - pip:
+      - pot==0.9.1
+      - gurobipy==11.0.0
+      - scikit-image==0.22.0
