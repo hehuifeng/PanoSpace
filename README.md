@@ -6,32 +6,40 @@
 
 This repository is currently under construction.
 
-## Installation
+### Installation
 
-To install PanoSpace:
+**PanoSpace** has been developed and tested on **Ubuntu 22.04.4 LTS (GNU/Linux 6.5.0-18-generic x86_64)**.
 
-- Set up conda environment for PanoSpace:
+To install **PanoSpace**, follow these steps:
+
+1. **Set up a Conda environment for PanoSpace**:
+
     ```bash
     conda env create -f environment.yml
     conda activate PanoSpace
     pip install torch==2.4.0 torchvision==0.19.0 pytorch-lightning==2.1.2
     ```
-Above, we install PyTorch version 2.4 with CUDA 12.2.
 
-- Clone the repository and install the PanoSpace using `pip`:
+    Here, we install PyTorch version `2.4.0` with CUDA `12.2` compatibility.
+
+    > **Note:** The `gurobipy` dependency listed in `environment.yml` is commercial software. However, students and staff members of academic institutions are eligible for a free, full-featured license. For details, visit https://pypi.org/project/gurobipy/
+
+2. **Clone the repository and install PanoSpace**:
+
     ```bash
     git clone https://github.com/hehuifeng/PanoSpace.git
     cd PanoSpace
     pip install .
     ```
 
-- Check the installation status in Python:
+3. **Verify the installation in Python**:
+
     ```python
     import panospace as ps
-    ps.__version__
-    # '0.1.0'
+    print(ps.__version__)
+    # Output: '0.1.0'
     ```
-
+    
 ## Reproducibility
 We provide source codes for reproducing the PanoSpace analysis in the main text in the `demos` directory.
 
