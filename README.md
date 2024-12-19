@@ -20,9 +20,9 @@ To install **PanoSpace**, follow these steps:
     pip install torch==2.4.0 torchvision==0.19.0 pytorch-lightning==2.1.2
     ```
 
-    Here, we install PyTorch version `2.4.0` with CUDA `12.2` compatibility.
+    In this step, we install PyTorch version `2.4.0` with CUDA `12.2` support.
 
-    > **Note:** The `gurobipy` dependency listed in `environment.yml` is commercial software. However, students and staff members of academic institutions are eligible for a free, full-featured license. For details, visit https://pypi.org/project/gurobipy/
+    > **Note:** The `gurobipy` dependency specified in `environment.yml` is commercial software. However, students and staff members of academic institutions are eligible for a free, full-featured license. For more details, visit https://pypi.org/project/gurobipy/
 
 2. **Clone the repository and install PanoSpace**:
 
@@ -39,7 +39,9 @@ To install **PanoSpace**, follow these steps:
     print(ps.__version__)
     # Output: '0.1.0'
     ```
-    
+
+    Installation time may vary depending on your network environment and hardware configuration but typically completes within a few minutes.
+
 ## Reproducibility
 We provide source codes for reproducing the PanoSpace analysis in the main text in the `demos` directory.
 
