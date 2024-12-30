@@ -11,7 +11,7 @@ from gurobipy import GRB
 from .utils import if_contain
 from .superres_deconv import superres_deconv
 
-class cellyypeannotator(object):
+class celltypeannotator(object):
     def __init__(self, experimental_path, img_dir, num_classes, deconv_adata, sr_deconv_adata, segment_adata, priori_type_affinities=None, lbd=0.5, neighbor_size=3):
         """
         Initialize the CellTypeAnnotator class.
