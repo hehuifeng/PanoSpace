@@ -8,11 +8,13 @@ import scipy
 import gurobipy as gp
 from gurobipy import GRB
 
-from .utils import if_contain
-from .superres_deconv import superres_deconv
 
-class celltypeannotator(object):
-    def __init__(self, experimental_path, img_dir, num_classes, deconv_adata, sr_deconv_adata, segment_adata, priori_type_affinities=None, lbd=0.5, neighbor_size=3):
+import matplotlib.pyplot as plt
+from utils import *
+from superres_deconv import superres_deconv
+
+class CellTypeAnnotator(object):
+    def __init__(self, experimental_path, img_dir, num_classes, deconv_adata, sr_deconv_adata, segment_adata, priori_type_affinities=None, alpha=0.3):
         """
         Initialize the CellTypeAnnotator class.
 
@@ -23,8 +25,7 @@ class celltypeannotator(object):
         - deconv_adata: AnnData object containing deconvolution data.
         - segment_adata: AnnData object containing segmentation data.
         - priori_type_affinities: Optional dictionary containing prior type affinities.
-        - lbd: Regularization parameter lambda.
-        - neighbor_size: Neighborhood size for super-resolution.
+        - alpha: Regularization parameter alpha.
         """
         self.experimental_path = experimental_path
         self.output_dir = os.path.join(experimental_path, 'celltype_infer')
@@ -33,10 +34,11 @@ class celltypeannotator(object):
         self.deconv_adata = deconv_adata
         self.sr_deconv_adata = sr_deconv_adata
         self.segment_adata = segment_adata
-        self.lbd = lbd
-        self.neighbor_size = neighbor_size
-        self.priori_type_affinities = priori_type_affinities
+        self.alpha = alpha
+        self.mode = 'mor' if 'img_type' in self.segment_adata.obs.columns else None
 
+        self.priori_type_affinities = priori_type_affinities
+        
         # Setup prior type affinities and cell types
         self.img_types = list(priori_type_affinities.keys()) if priori_type_affinities else None
         self.cell_types = deconv_adata.uns['celltype'].tolist()
@@ -63,41 +65,24 @@ class celltypeannotator(object):
         os.makedirs(os.path.join(self.output_dir, 'results'), exist_ok=True)
         os.makedirs(os.path.join(self.output_dir, 'fig'), exist_ok=True)
 
-    # def prob_inter_deconv(self):
-    #     """
-    #     Perform probabilistic inference using super-resolution deconvolution.
-    #     """
-    #     sr_inferencer = superres_deconv(
-    #         self.deconv_adata,
-    #         self.segment_adata,
-    #         self.img_dir,
-    #         self.experimental_path,
-    #         neighb=self.neighbor_size,
-    #         num_classes=self.num_classes
-    #     )
-    #     sr_inferencer.run_train()
-    #     sr_inferencer.run_superres()
-
-    #     self.sr_deconv_adata = sr_inferencer.sr_adata
-    #     self.sr_deconv_adata.write(os.path.join(self.experimental_path, 'adata/sr_adata.h5ad'))
-    #     self.sr_celltype_ratios = self.sr_deconv_adata.obs[self.cell_types].values
-
     def filter_segmentation(self):
         """
         Filter segmentation data based on spatial information.
         """
-        affiliation_matrix = if_contain(
+        affiliation_matrix = if_contain_batch(
             self.sr_deconv_adata.obsm['spatial'], 
             self.segment_adata.obsm['spatial'], 
             r=self.deconv_adata.uns['radius'], 
             norm=False
         )
         self.segment_adata = self.segment_adata[np.sum(affiliation_matrix, axis=1) != 0]
-        self._annotate_nuclei_types()
+        if self.mode == 'mor':
+            self._annotate_nuclei_types()
 
-        norm_affiliation_matrix = affiliation_matrix[np.sum(affiliation_matrix, axis=1) != 0, :]
+        norm_affiliation_matrix = affiliation_matrix[np.sum(affiliation_matrix, axis=1) != 0,:]
         row_sums = norm_affiliation_matrix.sum(axis=1, keepdims=True)
-        self.norm_affiliation_matrix = scipy.sparse.csr_matrix(norm_affiliation_matrix / row_sums)
+        norm_affiliation_matrix = scipy.sparse.csr_matrix(norm_affiliation_matrix)  
+        self.norm_affiliation_matrix = norm_affiliation_matrix / row_sums
 
     def _annotate_nuclei_types(self):
         """
@@ -136,9 +121,9 @@ class celltypeannotator(object):
         self.deconv_adata.obs['cell_count'] = self.cell_counts
         self.spot_cell_affiliation = scipy.sparse.csr_matrix(spot_cell_affiliation)
 
-    def calculate_alpha(self):
+    def calculate_imgtype_ratio(self):
         """
-        Calculate the alpha parameter for each spot.
+        Calculate the imgtype_ratio parameter for each spot.
         """
         counts_list = []
         raw_data = self.segment_adata.obs.copy()
@@ -150,11 +135,11 @@ class celltypeannotator(object):
 
         simulate_prop = pd.concat(counts_list, axis=1).fillna(0)
         self.mortype_in_spot = simulate_prop.T[[1, 2, 3, 5]].T
-        self.alpha = self.mortype_in_spot.sum(axis=1).values / np.sum(self.mortype_in_spot.values)
+        self.imgtype_ratio = self.mortype_in_spot.sum(axis=1).values / np.sum(self.mortype_in_spot.values)
 
-    def calculate_beta(self):
+    def calculate_celltype_ratio(self):
         """
-        Calculate the beta parameter for cell type proportions.
+        Calculate the celltype_ratio parameter for cell type proportions.
         """
         int_cell_type_ratios = np.zeros(self.celltype_ratios.shape)
         for spot in range(self.cell_counts.shape[0]):
@@ -167,8 +152,8 @@ class celltypeannotator(object):
         self.int_cell_type_ratios = int_cell_type_ratios[self.cell_counts != 0, :]
         self.spot_cell_affiliation = self.spot_cell_affiliation[:, self.cell_counts != 0]
 
-        self.beta = np.sum(self.int_cell_type_ratios, axis=0) / np.sum(self.int_cell_type_ratios)
-        self.N = np.array(self._solve_integer_vector(self.beta, self.segment_adata.shape[0])).astype(int)
+        self.celltype_ratio = np.sum(self.int_cell_type_ratios, axis=0) / np.sum(self.int_cell_type_ratios)
+        self.N = np.array(self._solve_integer_vector(self.celltype_ratio, self.segment_adata.shape[0])).astype(int)
 
     def calculate_type_transfer_matrix(self, factor=2):
         """
@@ -185,9 +170,9 @@ class celltypeannotator(object):
                 for cell_type in self.priori_type_affinities[img_type]:
                     idx = self.cell_types.index(cell_type)
                     self.adjusted_cost_matrix[idx, i] /= factor
-            self.type_transfer_ot = ot.emd(self.beta, self.alpha, self.adjusted_cost_matrix, numItermax=1000)
+            self.type_transfer_ot = ot.emd(self.celltype_ratio, self.imgtype_ratio, self.adjusted_cost_matrix, numItermax=1000)
         else:
-            self.type_transfer_ot = ot.emd(self.beta, self.alpha, self.cost_matrix, numItermax=1000)
+            self.type_transfer_ot = ot.emd(self.celltype_ratio, self.imgtype_ratio, self.cost_matrix, numItermax=1000)
 
         self.type_transfer_prop = self.type_transfer_ot / self.type_transfer_ot.sum(axis=0)
 
@@ -198,8 +183,11 @@ class celltypeannotator(object):
         Returns:
         - Annotated segment AnnData object.
         """
-        to_solve = ((1 - self.lbd) * self.norm_affiliation_matrix @ self.sr_celltype_ratios
-                    + self.lbd * self.onehot_mortype @ self.type_transfer_prop.T)
+        if self.mode == 'mor':
+            to_solve = ((1 - self.alpha) * self.norm_affiliation_matrix @ self.sr_celltype_ratios
+                        + self.alpha * self.onehot_mortype @ self.type_transfer_prop.T)
+        else:
+            to_solve = self.norm_affiliation_matrix @ self.sr_celltype_ratios
         
         optimal_solution = self._integer_programming_solver(to_solve, self.N, self.spot_cell_affiliation, self.int_cell_type_ratios)
         max_indexes = np.argmax(optimal_solution, axis=1)
@@ -208,7 +196,7 @@ class celltypeannotator(object):
         self.segment_cp.obs['pred_cell_type'] = [self.cell_types[i] for i in max_indexes]
         self.segment_cp.obs[self.cell_types] = np.where(optimal_solution != 0, 1, 0)
         
-        output_path = os.path.join(self.output_dir, 'results', f'adata_{self.lbd}.h5ad')
+        output_path = os.path.join(self.output_dir, 'results', f'adata_{self.alpha}.h5ad')
         self.segment_cp.write(output_path)
 
         return self.segment_cp
