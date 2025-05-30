@@ -46,6 +46,7 @@ To install **PanoSpace**, follow these steps:
 We provide source codes for reproducing the PanoSpace analysis in the main text in the `demos` directory.
 
 - [10x Visium Breast Cancer dataset](demo/Visium_Breast_Reproducibility.ipynb)
+- [10x Visium adult mouse olfactory bulb dataset](demo/Visium_bulb_Reproducibility.ipynb)
  
 ## Contact information
 Please contact Hui-Feng He (<huifeng@mails.ccnu.edu.cn>) or Prof. Xiao-Fei Zhang (<zhangxf@ccnu.edu.cn>) if any enquiry.
