@@ -242,6 +242,73 @@ class celldetector(object):
         print({label_dict[key]: (grp.shape[0], grp.shape[0] / img_adata.shape[0]) for key, grp in img_adata.obs.groupby('img_type')})
 
 
+def process_json_from_cellvit(json_dir):
+    """
+    load the json file and add the contents to corresponding lists.
+    Args:
+        json_dir (str): Directory containing the JSON file with nuclei instance information fetched from CellViT.
+
+    Returns:
+        Three lists containing information about each nuclei instance: centroids, contours, and types.
+    """
+    centroid_list = []
+    contour_list = [] 
+    type_list = []
+
+    with open(json_dir) as json_f:
+        data = json.load(json_f)
+
+        for inst in data:
+            offset = inst['offset_global']
+
+            inst_centroid = np.array(inst['centroid'])
+            centroid_list.append(inst_centroid)
+
+            inst_contour = np.array(inst['contour'])
+            contour_list.append(inst_contour)
+
+            inst_type = inst['type']
+            type_list.append(inst_type) 
+             
+    return centroid_list, contour_list, type_list
+
+
+
+def process_json_from_hovernet(json_dir):
+    """
+    load the json file and add the contents to corresponding lists.
+    Args:
+        json_dir (str): Directory containing the JSON file with nuclei instance information fetched from hover-net.
+
+    Returns:
+        Four lists containing information about each nuclei instance: bounding boxes, centroids, contours, and types.
+    """
+    bbox_list = []
+    centroid_list = []
+    contour_list = [] 
+    type_list = []
+
+    with open(json_dir) as json_f:
+        data = json.load(json_f)
+        # mag_info = data['mag']
+        nuc_info = data['nuc']
+
+        for inst in nuc_info:
+            inst_info = nuc_info[inst]
+            inst_centroid = inst_info['centroid']
+            centroid_list.append(inst_centroid)
+
+            inst_contour = inst_info['contour']
+            contour_list.append(inst_contour)
+
+            inst_bbox = inst_info['bbox']
+            bbox_list.append(inst_bbox)
+
+            inst_type = inst_info['type']
+            type_list.append(inst_type) 
+             
+    return bbox_list, centroid_list, contour_list, type_list
+
 
 if __name__ == "__main__":
     seg = celldetector(

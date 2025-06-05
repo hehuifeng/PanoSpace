@@ -8,10 +8,7 @@ import scipy
 import gurobipy as gp
 from gurobipy import GRB
 
-
-import matplotlib.pyplot as plt
 from utils import *
-from superres_deconv import superres_deconv
 
 class CellTypeAnnotator(object):
     def __init__(self, experimental_path, img_dir, num_classes, deconv_adata, sr_deconv_adata, segment_adata, priori_type_affinities=None, alpha=0.3):
@@ -19,51 +16,26 @@ class CellTypeAnnotator(object):
         Initialize the CellTypeAnnotator class.
 
         Parameters:
-        - experimental_path: Path to the experimental data.
-        - img_dir: Directory containing the images.
-        - num_classes: Number of cell types/classes.
         - deconv_adata: AnnData object containing deconvolution data.
         - segment_adata: AnnData object containing segmentation data.
-        - priori_type_affinities: Optional dictionary containing prior type affinities.
         - alpha: Regularization parameter alpha.
         """
-        self.experimental_path = experimental_path
-        self.output_dir = os.path.join(experimental_path, 'celltype_infer')
-        self.img_dir = img_dir
-        self.num_classes = num_classes
         self.deconv_adata = deconv_adata
         self.sr_deconv_adata = sr_deconv_adata
         self.segment_adata = segment_adata
         self.alpha = alpha
         self.mode = 'mor' if 'img_type' in self.segment_adata.obs.columns else None
 
-        self.priori_type_affinities = priori_type_affinities
-        
-        # Setup prior type affinities and cell types
-        self.img_types = list(priori_type_affinities.keys()) if priori_type_affinities else None
         self.cell_types = deconv_adata.uns['celltype'].tolist()
+        self.cell_types.sort()
         self.sr_celltype_ratios = self.sr_deconv_adata.obs[self.cell_types].values
-        self.celltype_ratios = self._normalize_celltype_ratios()
+        self.sr_celltype_ratios = self._normalize_celltype_ratios(self.sr_celltype_ratios)
+        self.celltype_ratios = self.deconv_adata.obs[self.cell_types].values
+        self.celltype_ratios = self._normalize_celltype_ratios(self.celltype_ratios)
 
-        # Create output directories if they don't exist
-        self._create_output_dirs()
-
-    def _normalize_celltype_ratios(self):
-        """
-        Normalize cell type ratios in deconv_adata.
-
-        Returns:
-        - Normalized cell type ratios.
-        """
-        celltype_ratios = self.deconv_adata.obs[self.cell_types].values
+    def _normalize_celltype_ratios(self, celltype_ratios):
         celltype_ratios[celltype_ratios < 0] = 0
         return (celltype_ratios.T / np.sum(celltype_ratios, axis=1)).T
-
-    def _create_output_dirs(self):
-        """Create necessary output directories."""
-        os.makedirs(os.path.join(self.output_dir, 'af'), exist_ok=True)
-        os.makedirs(os.path.join(self.output_dir, 'results'), exist_ok=True)
-        os.makedirs(os.path.join(self.output_dir, 'fig'), exist_ok=True)
 
     def filter_segmentation(self):
         """
@@ -164,15 +136,7 @@ class CellTypeAnnotator(object):
         """
         self.cost_matrix = ot.dist(self.int_cell_type_ratios.T, self.mortype_in_spot.values[:, self.cell_counts != 0], metric='cosine')
 
-        if self.priori_type_affinities:
-            self.adjusted_cost_matrix = self.cost_matrix.copy()
-            for i, img_type in enumerate(self.img_types):
-                for cell_type in self.priori_type_affinities[img_type]:
-                    idx = self.cell_types.index(cell_type)
-                    self.adjusted_cost_matrix[idx, i] /= factor
-            self.type_transfer_ot = ot.emd(self.celltype_ratio, self.imgtype_ratio, self.adjusted_cost_matrix, numItermax=1000)
-        else:
-            self.type_transfer_ot = ot.emd(self.celltype_ratio, self.imgtype_ratio, self.cost_matrix, numItermax=1000)
+        self.type_transfer_ot = ot.emd(self.celltype_ratio, self.imgtype_ratio, self.cost_matrix, numItermax=1000)
 
         self.type_transfer_prop = self.type_transfer_ot / self.type_transfer_ot.sum(axis=0)
 
@@ -196,8 +160,8 @@ class CellTypeAnnotator(object):
         self.segment_cp.obs['pred_cell_type'] = [self.cell_types[i] for i in max_indexes]
         self.segment_cp.obs[self.cell_types] = np.where(optimal_solution != 0, 1, 0)
         
-        output_path = os.path.join(self.output_dir, 'results', f'adata_{self.alpha}.h5ad')
-        self.segment_cp.write(output_path)
+        # output_path = os.path.join(self.output_dir, 'results', f'adata_{self.alpha}.h5ad')
+        # self.segment_cp.write(output_path)
 
         return self.segment_cp
 
