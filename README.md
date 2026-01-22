@@ -1,5 +1,23 @@
 # Unlocking single-cell level and whole-tissue insights in spatial transcriptomics with PanoSpace
 
+---
+
+## ⚠️ Important Notice
+
+> **This repository contains the implementation used in the paper:**  
+> **He, H.F., Peng, P., Yang, S.T. et al.**  
+> *Unlocking single-cell level and continuous whole-slide insights in spatial transcriptomics with PanoSpace.*  
+> **Nature Computational Science (2026)**  
+> DOI: https://doi.org/10.1038/s43588-025-00938-y
+
+> **The actively developed and redesigned version of PanoSpace is available here:**  
+> 👉 **https://github.com/hehuifeng/PanoSpace-core**
+---
+
+
+
+
+
 ![PanoSpace_overview](figures/fig1.png)
 
 **PanoSpace** is a Python package designed for single-cell level analysis and visualization of low-resolution spatial transcriptomics data, such as Visium. By integrating scRNA-seq data, low-resolution spatial transcriptomics data, and high-definition H&E-stained images from the same tissue region or type, PanoSpace transforms spot-level spatial transcriptomics data into detailed, whole-tissue single-cell insights. This enables accurate cell detection, cell type annotation, and gene expression prediction at a single-cell resolution. Additionally, PanoSpace facilitates in-depth analysis of intra-cell type heterogeneity and cell-cell interactions, unlocking new dimensions of spatial biology.
