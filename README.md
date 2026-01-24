@@ -2,7 +2,7 @@
 
 ---
 
-## ⚠️ Important Notice
+## 📄 About This Repository
 
 > **This repository contains the implementation used in the paper:**  
 > **He, H.F., Peng, P., Yang, S.T. et al.**  
@@ -10,8 +10,16 @@
 > **Nature Computational Science (2026)**  
 > DOI: https://doi.org/10.1038/s43588-025-00938-y
 
+In this version, key components (e.g. CellViT, HoVer-Net, and **EnDecon**, which integrates the results from RCTD, cell2location, and spatialDWLS) are executed in **external environments**, and their outputs are subsequently integrated and processed by PanoSpace.
+
+## ⚠️ Important Notice
+
 > **The actively developed and redesigned version of PanoSpace is available here:**  
 > 👉 **https://github.com/hehuifeng/PanoSpace-core**
+
+The new version provides a **fully integrated pipeline** for nucleus segmentation, cell type annotation, and gene expression prediction within a **single unified environment**.  
+**New users are strongly encouraged to use PanoSpace-core.**
+
 ---
 
 
